@@ -24,5 +24,8 @@
   "bugs": {
     "url": "https://github.com/plw-consulting/assets-to-pdf/issues"
   },
-  "homepage": "https://github.com/plw-consulting/assets-to-pdf"
+  "homepage": "https://github.com/plw-consulting/assets-to-pdf",
+  "dependencies": {
+    "phantom": "^0.7.1"
+  }
 }
