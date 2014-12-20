@@ -1,0 +1,28 @@
+{
+  "name": "assets-to-pdf",
+  "version": "1.0.0",
+  "description": "Inputs N amount of jpgs, pngs, or pdfs to create a single PDF",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/plw-consulting/assets-to-pdf"
+  },
+  "keywords": [
+    "pdf",
+    "assets",
+    "images",
+    "image2pdf"
+  ],
+  "author": "Matt Lo",
+  "license": "Apache",
+  "bugs": {
+    "url": "https://github.com/plw-consulting/assets-to-pdf/issues"
+  },
+  "homepage": "https://github.com/plw-consulting/assets-to-pdf"
+}
