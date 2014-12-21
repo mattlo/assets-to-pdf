@@ -1,8 +1,8 @@
 {
   "name": "assets-to-pdf",
   "version": "1.0.0",
-  "description": "Inputs N amount of jpgs, pngs, or pdfs to create a single PDF",
-  "main": "index.js",
+  "description": "Inputs N amount of jpgs, pngs, or pdfs and outputs a single PDF with each asset as it's own page.",
+  "main": "main.js",
   "directories": {
     "test": "test"
   },
@@ -26,6 +26,7 @@
   },
   "homepage": "https://github.com/plw-consulting/assets-to-pdf",
   "dependencies": {
-    "phantom": "^0.7.1"
+    "phantom": "^0.7.1",
+    "scissors": "0.1.0"
   }
 }
