@@ -7,6 +7,7 @@ Vagrant.configure("2") do |config|
   config.vm.box = "precise64"
   config.vm.box_url = "http://files.vagrantup.com/precise64.box"
   config.vm.provision "shell", path: "tools/bootstrap-vagrant.sh"
+  config.vm.provision "shell", path: "tools/start-docker-vagrant.sh"
   config.vm.network :forwarded_port, host: 8080, guest: 8080
   config.vm.provision "shell", path: "tools/stop-docker-vagrant.sh", run: "always"
   config.vm.provision "shell", path: "tools/start-docker-vagrant.sh", run: "always"
