@@ -1,0 +1,1 @@
+cd /vagrant && sudo docker stop $(docker ps -a -q) && sudo docker rm $(docker ps -a -q) && echo '  all dockers stopped'
