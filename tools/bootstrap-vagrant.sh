@@ -19,3 +19,5 @@ sudo ufw allow 8080/tcp
 
 cd /vagrant
 sudo docker build -t plwconsulting/assets-to-pdf .
+
+sudo sh /vagrant/tools/build-docker.sh

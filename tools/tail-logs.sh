@@ -1,0 +1,1 @@
+vagrant ssh -- sudo docker logs -f app

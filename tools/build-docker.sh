@@ -1,0 +1,1 @@
+cd /vagrant && sudo docker build -t plwconsulting/assets-to-pdf .
