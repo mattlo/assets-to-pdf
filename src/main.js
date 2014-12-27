@@ -38,7 +38,7 @@ function imageToPdf(res) {
 		height = (xAxisLarger ? scale / aspectRatio : scale) + errorPx;
 
 	// 1000*562.50
-	exec(['phantomjs', __dirname + '/r.js', sourcePath, outputPath, width +'px*' + height + 'px'].join(' '), function () {
+	exec(['phantomjs', __dirname + '/rasterize.js', sourcePath, outputPath, width +'px*' + height + 'px'].join(' '), function () {
 		res.writeHead(200, {'Content-Type': 'text/plain'});
 		res.end('rendered\n');
 	});
