@@ -26,7 +26,7 @@
   },
   "homepage": "https://github.com/plw-consulting/assets-to-pdf",
   "dependencies": {
-    "phantom": "^0.7.1",
-    "scissors": "0.1.0"
+    "scissors": "0.1.0",
+    "image-size": "0.1.4"
   }
 }
