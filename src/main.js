@@ -66,7 +66,7 @@ http.createServer(function (req, res) {
 function pdfExists(fileName) {
 	var deferred = Q.defer(),
 		// construct path
-		filePath = path.join(__dirname, 'input', fileName + '.pdf');
+		filePath = path.join(__dirname, 'output', fileName + '.pdf');
 
 	try {
 		// check if file exists
