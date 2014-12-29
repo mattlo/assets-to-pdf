@@ -36,5 +36,7 @@ RUN mkdir -p /opt/src && cp -a /tmp/node_modules /opt/src/
 
 WORKDIR /opt/src
 
+RUN mkdir -p /opt/src/src/tmp
+
 # run!
 CMD ["node", "src/main.js"]
