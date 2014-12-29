@@ -23,7 +23,7 @@ http.createServer(function (req, res) {
 			// success handler
 			.then(function (data) {
 				outputResponse(res, 200, {
-					url: 'http://' + req.headers.host + '/fetch/' + data.hash + '/' + encodeURIComponent(data.name)
+					url: 'http://' + req.headers.host + '/fetch/' + data.hash + '/' + encodeURIComponent(data.name) + '.pdf'
 				});
 			})
 			// fail handler
