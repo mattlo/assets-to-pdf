@@ -6,8 +6,8 @@ var page = require('webpage').create(),
 
 // page context size
 page.viewportSize = {
-    width: 600, 
-    height: 600 
+    width: 1000, 
+    height: 1000 
 };
 
 // pdf size

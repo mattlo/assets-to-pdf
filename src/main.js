@@ -23,7 +23,7 @@ http.createServer(function (req, res) {
 			// success handler
 			.then(function (data) {
 				outputResponse(res, 200, {
-					url: 'http://' + req.headers.host + '/fetch/' + data.hash + '/' + encodeURIComponent(data.name) + '.pdf'
+					url: 'http://' + req.headers.host + '/fetch/' + data.hash + '/' + encodeURIComponent(data.name)
 				});
 			})
 			// fail handler
@@ -168,7 +168,7 @@ function responseHandler(req, res) {
  */
 function prepareFiles(files) {
 	var deferred = Q.defer(),
-		execCount = files.length,
+		preparedFiles = [],
 		n = 0;
 
 	console.log('...preparing files for normalization');
@@ -181,23 +181,12 @@ function prepareFiles(files) {
 		return file.substr(-4) === '.pdf';
 	}
 
-	function resolve() {
-		if (++n === execCount) {
-			deferred.resolve(files.map(function (file) {
-				console.log('...files normalized')
-				return __dirname + '/tmp/' + (!isPdf(file) ? basename(file) + '.pdf' : file);
-			}));
-		}
-	}
+	function resolve(inputPath) {
+		preparedFiles.push(inputPath);
 
-	function execResolver(err) {
-		// error handler
-		if (err) {
-			console.log('file failed to translate to PDF');
-			deferred.reject(err);
+		if (preparedFiles.length === files.length) {
+			deferred.resolve(preparedFiles);
 		}
-
-		resolve();
 	}
 
 	files.every(function (file) {
@@ -206,10 +195,10 @@ function prepareFiles(files) {
 		if (!isPdf(file)) {
 			// configurations
 			var sourcePath = __dirname + '/input/' + file,
-				outputPath = __dirname + '/tmp/' + basename(file) + '.pdf',
+				outputBase = __dirname + '/tmp/' + basename(file),
 				size = sizeOf(sourcePath),
 				xAxisLarger = size.width > size.height,
-				scale = 1000,
+				scale = 2000,
 				aspectRatio = xAxisLarger ? (size.width / size.height) : (size.height / size.width),
 				errorPx = 5,
 				width = (xAxisLarger ? scale : scale / aspectRatio) + errorPx,
@@ -218,19 +207,40 @@ function prepareFiles(files) {
 			// validate path
 			if (!fs.existsSync(sourcePath)) {
 				deferred.reject(sourcePath + ' does not exist!');
+
+				// break loop
 				return false;
 			}
 
 			// create PDF
-			exec(['phantomjs', __dirname + '/rasterize.js', sourcePath, outputPath, width +'px*' + height + 'px'].join(' '), execResolver);
+			// @TODO abstract out all these commands into promises
+			exec(['phantomjs', __dirname + '/rasterize.js', sourcePath, outputBase + '.pdf', width +'px*' + height + 'px'].join(' '), function (err) {
+				// error handler
+				if (err) {
+					console.log('file failed to translate to PDF');
+					deferred.reject(err);
+				}
+
+				// remove second page
+				exec(['pdftk', outputBase + '.pdf', 'cat', '1-1', 'output', outputBase + 'x.pdf'].join (' '), function (err) {
+					// ignore errors for this one, pdftk will fail if there isn't 2 pages
+					if (err) {
+						resolve(outputBase + '.pdf');
+					} else {
+						resolve(outputBase + 'x.pdf');
+						fs.unlinkSync(outputBase + '.pdf');
+					}
+				});
+			});
 		} else {
 			// copy it to tmp directory
 			fs.createReadStream(__dirname + '/input/' + file)
 				.pipe(fs.createWriteStream(__dirname + '/tmp/' + file));
 
-			resolve();
+			resolve( __dirname + '/tmp/' + file);
 		}
 
+		// continuation of the loop
 		return true;
 	});
 
