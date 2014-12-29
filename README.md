@@ -1,7 +1,10 @@
 # Assets to PDF
-Inputs N amount of jpgs, pngs, or pdfs and outputs a single PDF with each asset as it's own page.
+Inputs N amount of jpgs, pngs, or pdfs and outputs a single PDF with each asset as it's own page.  
+  
+** This is experimental, there are no unit tests, use at your own risk**
 
 ## Setup
+
 ### OS X
 - Get Cask `brew install caskroom/cask/brew-cask`
 - `brew cask install virtualbox`
@@ -37,3 +40,6 @@ Initialization of any processes is done through HTTP.
 ```
 
 The order of the `inputFiles` will be the order the pages are created within 1 pdf.
+
+## License
+View the [LICENSE](https://github.com/plw-consulting/assets-to-pdf/blob/master/LICENSE) file.
