@@ -20,10 +20,10 @@ Initialization of any processes is done through HTTP.
 
 ### API
 
-- **Download PDF** HTTP `GET` `/fetch/<HASH>/<DOWNLOAD_FILE_NAME>`
+- **Download PDF** HTTP `GET` `http://localhost:8080/fetch/<HASH>/<DOWNLOAD_FILE_NAME>`
   - `HASH` - Base62 filename thats within `/src/output`
   - `DOWNLOAD_FILE_NAME` - the name of the file you want to download as
-- **Create PDF** HTTP `POST` `/create-pdf`
+- **Create PDF** HTTP `POST` `http://localhost:8080/create-pdf`
   - Response Body Example:
 ```
 {
