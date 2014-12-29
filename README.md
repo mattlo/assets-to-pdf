@@ -11,16 +11,16 @@ Inputs N amount of jpgs, pngs, or pdfs and outputs a single PDF with each asset 
 
 ## Dev Workflow Notes
 - Restart Node Instance after `vagrant` is running:
- - `cd` into your project directory
- - `. tools/restart.sh`
+  - `cd` into your project directory
+  - `. tools/restart.sh`  
+  
+## How To Use
+The program expects files to be within the `/src/input` and `/src/output` directories. 
+Initialization of any processes is done through HTTP.
 
- ## How To Use
- The program expects files to be within the `/src/input` and `/src/output` directories. 
- Initialization of any processes is done through HTTP.
-
- - **Download PDF** HTTP `GET` `/fetch/<HASH>/<DOWNLOAD_FILE_NAME>`
+- **Download PDF** HTTP `GET` `/fetch/<HASH>/<DOWNLOAD_FILE_NAME>`
   - `HASH` - Base62 filename thats within `/src/output`
- - **Create PDF** HTTP `POST` `/create-pdf`
+- **Create PDF** HTTP `POST` `/create-pdf`
   - Response Body Example:
 ```
 {
