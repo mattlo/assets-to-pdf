@@ -11,5 +11,10 @@ Vagrant.configure("2") do |config|
   config.vm.network :forwarded_port, host: 8080, guest: 8080
   config.vm.provision "shell", path: "tools/stop-docker-vagrant.sh", run: "always"
   config.vm.provision "shell", path: "tools/start-docker-vagrant.sh", run: "always"
+  config.vm.provider :virtualbox do |vb|
+    vb.customize ["modifyvm", :id, "--hwvirtex", "off"]
+    vb.customize ["modifyvm", :id, "--cpus", "1"]
+    # vb.gui = true
+  end
 
 end
