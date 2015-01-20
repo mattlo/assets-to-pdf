@@ -161,6 +161,28 @@ function responseHandler(req, res) {
 }
 
 /**
+ * Execute PhantomJS to PDF service
+ * Arguments are forwarded onto execution args
+ * 
+ * @return {Object} promise
+ */
+function phantom() {
+	var deferred = Q.defer();
+
+	exec(['phantomjs', __dirname + '/rasterize.js'].concat([].slice.call(arguments)).join(' '), function (err) {
+		// error handler
+		if (err) {
+			console.log('endpoint failed to translate to PDF');
+			deferred.reject(err);
+		}
+
+		deferred.resolve(arguments[0]); // return output path
+	});
+
+	return deferred.promise;
+}
+
+/**
  * Translates all files to individual PDFs then moves them to `tmp`
  * @todo  abstract out PDFer and let this resolve moving files
  * @param  {Array} files 
@@ -181,6 +203,10 @@ function prepareFiles(files) {
 		return file.substr(-4) === '.pdf';
 	}
 
+	function isHttpProtocol(file) {
+		return file.substr(0, 7) === 'http://' || file.substr(0, 8) === 'https://';
+	}
+
 	function resolve(inputPath) {
 		preparedFiles.push(inputPath);
 
@@ -190,9 +216,17 @@ function prepareFiles(files) {
 	}
 
 	files.every(function (file) {
+		// PDF a website
+		if (isHttpProtocol(file)) {
+			var ouputFilename = 'fieldnote.pdf';
+
+			phantom(file, ouputFilename, '2000px*3000px').then(function () {
+				resolve(ouputFilename);
+			});
+
 		// if its a PDF, skip it
 		// we are assuming all input files are JPG or PNG
-		if (!isPdf(file)) {
+		} else if (!isPdf(file)) {
 			// configurations
 			var sourcePath = __dirname + '/input/' + file,
 				outputBase = __dirname + '/tmp/' + basename(file),
@@ -213,15 +247,7 @@ function prepareFiles(files) {
 			}
 
 			// create PDF
-			// @TODO abstract out all these commands into promises
-			exec(['phantomjs', __dirname + '/rasterize.js', sourcePath, outputBase + '.pdf', width +'px*' + height + 'px'].join(' '), function (err) {
-				// error handler
-				if (err) {
-					console.log('file failed to translate to PDF');
-					deferred.reject(err);
-				}
-
-				// remove second page
+			phantom(sourcePath, outputBase + '.pdf', width +'px*' + height + 'px').then(function () {
 				exec(['pdftk', outputBase + '.pdf', 'cat', '1-1', 'output', outputBase + 'x.pdf'].join (' '), function (err) {
 					// ignore errors for this one, pdftk will fail if there isn't 2 pages
 					if (err) {
@@ -237,7 +263,7 @@ function prepareFiles(files) {
 			fs.createReadStream(__dirname + '/input/' + file)
 				.pipe(fs.createWriteStream(__dirname + '/tmp/' + file));
 
-			resolve( __dirname + '/tmp/' + file);
+			resolve(__dirname + '/tmp/' + file);
 		}
 
 		// continuation of the loop
