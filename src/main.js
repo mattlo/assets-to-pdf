@@ -189,10 +189,6 @@ function phantom() {
  * @return {Object} promise
  */
 function prepareFiles(files) {
-	var deferred = Q.defer(),
-		preparedFiles = [],
-		n = 0;
-
 	console.log('...preparing files for normalization');
 
 	function basename(file) {
@@ -207,70 +203,86 @@ function prepareFiles(files) {
 		return file.substr(0, 7) === 'http://' || file.substr(0, 8) === 'https://';
 	}
 
-	function resolve(inputPath) {
-		preparedFiles.push(inputPath);
+    function fileProcess(file) {
+        var deferred = Q.defer();
 
-		if (preparedFiles.length === files.length) {
-			deferred.resolve(preparedFiles);
-		}
-	}
+        function resolve(inputPath) {
+            deferred.resolve(inputPath);
+        }
 
-	files.every(function (file) {
-		// PDF a website
-		if (isHttpProtocol(file)) {
-			var ouputFilename = 'fieldnote.pdf';
+        // PDF a website
+        if (isHttpProtocol(file)) {
+            var ouputFilename = 'fieldnote.pdf';
 
-			phantom(file, ouputFilename, '2000px*3000px').then(function () {
-				resolve(ouputFilename);
-			});
+            phantom(file, ouputFilename, '2000px*3000px').then(function () {
+                resolve(ouputFilename);
+            });
 
-		// if its a PDF, skip it
-		// we are assuming all input files are JPG or PNG
-		} else if (!isPdf(file)) {
-			// configurations
-			var sourcePath = __dirname + '/input/' + file,
-				outputBase = __dirname + '/tmp/' + basename(file),
-				size = sizeOf(sourcePath),
-				xAxisLarger = size.width > size.height,
-				scale = 2000,
-				aspectRatio = xAxisLarger ? (size.width / size.height) : (size.height / size.width),
-				errorPx = 5,
-				width = (xAxisLarger ? scale : scale / aspectRatio) + errorPx,
-				height = (xAxisLarger ? scale / aspectRatio : scale) + errorPx;
+            // if its a PDF, skip it
+            // we are assuming all input files are JPG or PNG
+        } else if (!isPdf(file)) {
+            // configurations
+            var sourcePath = __dirname + '/input/' + file,
+                outputBase = __dirname + '/tmp/' + basename(file),
+                size = sizeOf(sourcePath),
+                xAxisLarger = size.width > size.height,
+                scale = 2000,
+                aspectRatio = xAxisLarger ? (size.width / size.height) : (size.height / size.width),
+                errorPx = 5,
+                width = (xAxisLarger ? scale : scale / aspectRatio) + errorPx,
+                height = (xAxisLarger ? scale / aspectRatio : scale) + errorPx;
 
-			// validate path
-			if (!fs.existsSync(sourcePath)) {
-				deferred.reject(sourcePath + ' does not exist!');
+            // validate path
+            if (!fs.existsSync(sourcePath)) {
+                deferred.reject(sourcePath + ' does not exist!');
 
-				// break loop
-				return false;
-			}
+                // break loop
+                return false;
+            }
 
-			// create PDF
-			phantom(sourcePath, outputBase + '.pdf', width +'px*' + height + 'px').then(function () {
-				exec(['pdftk', outputBase + '.pdf', 'cat', '1-1', 'output', outputBase + 'x.pdf'].join (' '), function (err) {
-					// ignore errors for this one, pdftk will fail if there isn't 2 pages
-					if (err) {
-						resolve(outputBase + '.pdf');
-					} else {
-						resolve(outputBase + 'x.pdf');
-						fs.unlinkSync(outputBase + '.pdf');
-					}
-				});
-			});
-		} else {
-			// copy it to tmp directory
-			fs.createReadStream(__dirname + '/input/' + file)
-				.pipe(fs.createWriteStream(__dirname + '/tmp/' + file));
+            // create PDF
+            phantom(sourcePath, outputBase + '.pdf', width +'px*' + height + 'px').then(function () {
+                exec(['pdftk', outputBase + '.pdf', 'cat', '1-1', 'output', outputBase + 'x.pdf'].join (' '), function (err) {
+                    // ignore errors for this one, pdftk will fail if there isn't 2 pages
+                    if (err) {
+                        resolve(outputBase + '.pdf');
+                    } else {
+                        resolve(outputBase + 'x.pdf');
+                        fs.unlinkSync(outputBase + '.pdf');
+                    }
+                });
+            });
+        } else {
+            // copy it to tmp directory
+            fs.createReadStream(__dirname + '/input/' + file)
+                .pipe(fs.createWriteStream(__dirname + '/tmp/' + file));
 
-			resolve(__dirname + '/tmp/' + file);
-		}
+            resolve(__dirname + '/tmp/' + file);
+        }
 
-		// continuation of the loop
-		return true;
-	});
+        return deferred.promise;
+    }
 
-	return deferred.promise;
+
+    return (function (processes) {
+        return processes.reduce(Q.when, Q([]));
+    }(files.map(function (file) {
+        return function (list) {
+            var d = Q.defer();
+
+            fileProcess(file).then(function (path) {
+                list.push(path);
+
+                d.resolve(list);
+
+                console.log('processed file', new Date);
+            }).catch(function () {
+                d.reject('file failed');
+            });
+
+            return d.promise;
+        };
+    })));
 }
 
 /**
@@ -287,7 +299,7 @@ function mergePdfs(pdfList) {
 
 	pdfList.forEach(function (sourcePath) {
 		if (!fs.existsSync(sourcePath)) {
-			console.log('...  ' + sourcePath + ' does not exist!');
+			console.log('...  ' + sourcePath + ' does not existxxx!');
 		} else {
 			console.log('...  ' + sourcePath + ' exists!');
 		}
