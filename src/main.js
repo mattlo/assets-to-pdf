@@ -212,7 +212,7 @@ function prepareFiles(files) {
 
         // PDF a website
         if (isHttpProtocol(file)) {
-            var ouputFilename = 'fieldnote.pdf';
+            var ouputFilename = guidGenerator() + '.pdf';
 
             phantom(file, ouputFilename, '2000px*3000px').then(function () {
                 resolve(ouputFilename);
@@ -329,4 +329,11 @@ function mergePdfs(pdfList) {
 	});
 
 	return deferred.promise;
+}
+
+function guidGenerator() {
+    var S4 = function() {
+        return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
+    };
+    return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
 }
