@@ -189,7 +189,7 @@ function phantom() {
  * @return {Object} promise
  */
 function prepareFiles(files) {
-	console.log('...preparing files for normalization');
+	console.log('...preparing files for normalization', files);
 
 	function basename(file) {
 		return file.substr(0, file.lastIndexOf('.'));
@@ -275,7 +275,7 @@ function prepareFiles(files) {
 
                 d.resolve(list);
 
-                console.log('processed file', new Date);
+                console.log('processed file ' + path + ' on ', new Date);
             }).catch(function () {
                 d.reject('file failed');
             });
@@ -314,7 +314,11 @@ function mergePdfs(pdfList) {
 		} else {
 			// removes files in tmp
 			pdfList.forEach(function (file) {
-				fs.unlinkSync(file);
+                try {
+				    fs.unlinkSync(file);
+                } catch (e) {
+                    console.log('could not unlink ' + file);
+                }
 			});
 
 			console.log('...PDFs merged: ' + outputFile);
