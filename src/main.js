@@ -9,6 +9,8 @@ var sizeOf = require('image-size'),
 
 // spawn server
 http.createServer(function (req, res) {
+	// set socket timeout
+	req.socket.setTimeout(1000 * 60 * 20);
 	// enable socket keep-alive
 	req.socket.setKeepAlive(true);
 
