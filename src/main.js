@@ -8,7 +8,10 @@ var sizeOf = require('image-size'),
     port = 8080;
 
 // spawn server
-http.createServer(function (req, res) { 
+http.createServer(function (req, res) {
+	// enable socket keep-alive
+	req.socket.setKeepAlive(true);
+
 	// argument stream: /fetch/filename hash/file name to download as
 	var pdfExp = /^\/fetch\/(.*)\/(.*)/;
 
