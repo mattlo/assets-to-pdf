@@ -3,12 +3,12 @@ var sizeOf = require('image-size'),
 	http = require('http'),
 	exec = require('child_process').exec,
 	fs = require('fs'),
-    path = require('path'),
-    Base62 = require('base62'),
-    port = 8080;
+	path = require('path'),
+	Base62 = require('base62'),
+	port = 8080;
 
 // spawn server
-http.createServer(function (req, res) { 
+http.createServer(function (req, res) {
 	// argument stream: /fetch/filename hash/file name to download as
 	var pdfExp = /^\/fetch\/(.*)\/(.*)/;
 
@@ -22,9 +22,18 @@ http.createServer(function (req, res) {
 			.then(responseHandler(req, res))
 			// success handler
 			.then(function (data) {
-				outputResponse(res, 200, {
-					url: 'http://' + req.headers.host + '/fetch/' + data.hash + '/' + encodeURIComponent(data.name)
-				});
+				http.request({
+					host: req.headers.host.split(':')[0],
+					port: '3000',
+					path: '/api/pdfservice/' + data.id,
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					json: {
+						url: '/fetch/' + data.hash + '/' + encodeURIComponent(data.name)
+					}
+				}).end();
 			})
 			// fail handler
 			.catch(function (e) {
@@ -65,14 +74,14 @@ http.createServer(function (req, res) {
  */
 function pdfExists(fileName) {
 	var deferred = Q.defer(),
-		// construct path
+	// construct path
 		filePath = path.join(__dirname, 'output', fileName + '.pdf');
 
 	try {
 		// check if file exists
 		if (!fs.existsSync(filePath)) {
 			throw new Error('PDF does not exist');
-		}	
+		}
 
 		deferred.resolve(filePath);
 	} catch (e) {
@@ -84,10 +93,10 @@ function pdfExists(fileName) {
 
 /**
  * Outputs HTTP response
- * @param  {Object} res    
- * @param  {Number} status 
- * @param  {Object} data   
- * @return {undefined}        
+ * @param  {Object} res
+ * @param  {Number} status
+ * @param  {Object} data
+ * @return {undefined}
  */
 function outputResponse(res, status, data) {
 	res.writeHead(status, {
@@ -100,7 +109,7 @@ function outputResponse(res, status, data) {
 
 /**
  * Validates Request
- * @param  {Object} req 
+ * @param  {Object} req
  * @return {Object}
  */
 function validateRequest(req) {
@@ -143,9 +152,9 @@ function getJsonRequestBody(req) {
 
 /**
  * Handles executing PDF actions
- * @param  {Object} req 
- * @param  {Object} res 
- * @return {Function}     
+ * @param  {Object} req
+ * @param  {Object} res
+ * @return {Function}
  */
 function responseHandler(req, res) {
 	return function (data) {
@@ -154,7 +163,8 @@ function responseHandler(req, res) {
 			.then(function (hash) {
 				return {
 					"name": data.uniquePkgName,
-					"hash": hash
+					"hash": hash,
+					"id": data.packageId
 				}
 			});
 	};
@@ -163,7 +173,7 @@ function responseHandler(req, res) {
 /**
  * Execute PhantomJS to PDF service
  * Arguments are forwarded onto execution args
- * 
+ *
  * @return {Object} promise
  */
 function phantom() {
@@ -185,11 +195,11 @@ function phantom() {
 /**
  * Translates all files to individual PDFs then moves them to `tmp`
  * @todo  abstract out PDFer and let this resolve moving files
- * @param  {Array} files 
+ * @param  {Array} files
  * @return {Object} promise
  */
 function prepareFiles(files) {
-	console.log('...preparing files for normalization', files);
+	console.log('...preparing files for normalization');
 
 	function basename(file) {
 		return file.substr(0, file.lastIndexOf('.'));
@@ -203,91 +213,99 @@ function prepareFiles(files) {
 		return file.substr(0, 7) === 'http://' || file.substr(0, 8) === 'https://';
 	}
 
-    function fileProcess(file) {
-        var deferred = Q.defer();
+	function fileProcess(file) {
+		var deferred = Q.defer();
 
-        function resolve(inputPath) {
-            deferred.resolve(inputPath);
-        }
+		function resolve(inputPath) {
+			deferred.resolve(inputPath);
+		}
 
-        // PDF a website
-        if (isHttpProtocol(file)) {
-            var ouputFilename = guidGenerator() + '.pdf';
+		// PDF a website
+		if (isHttpProtocol(file)) {
+			var ouputFilename = 'fieldnote.pdf';
 
-            phantom(file, ouputFilename, '2000px*3000px').then(function () {
-                resolve(ouputFilename);
-            });
+			phantom(file, ouputFilename, '2000px*3000px').then(function () {
+				resolve(ouputFilename);
+			});
 
-            // if its a PDF, skip it
-            // we are assuming all input files are JPG or PNG
-        } else if (!isPdf(file)) {
-            // configurations
-            var sourcePath = __dirname + '/input/' + file,
-                outputBase = __dirname + '/tmp/' + basename(file),
-                size = sizeOf(sourcePath),
-                xAxisLarger = size.width > size.height,
-                scale = 2000,
-                aspectRatio = xAxisLarger ? (size.width / size.height) : (size.height / size.width),
-                errorPx = 5,
-                width = (xAxisLarger ? scale : scale / aspectRatio) + errorPx,
-                height = (xAxisLarger ? scale / aspectRatio : scale) + errorPx;
+			// if its a PDF, skip it
+			// we are assuming all input files are JPG or PNG
+		} else if (!isPdf(file)) {
+			// configurations
+			var sourcePath = __dirname + '/input/' + file;
+			var outputBase = __dirname + '/tmp/' + basename(file);
+			sizeOf(sourcePath, function(err, size) {
+				var xAxisLarger = size.width > size.height;
+				var scale = 2000;
+				var aspectRatio = xAxisLarger ? (size.width / size.height) : (size.height / size.width);
+				var errorPx = 5;
+				var width = (xAxisLarger ? scale : scale / aspectRatio) + errorPx;
+				var height = (xAxisLarger ? scale / aspectRatio : scale) + errorPx;
 
-            // validate path
-            if (!fs.existsSync(sourcePath)) {
-                deferred.reject(sourcePath + ' does not exist!');
+				// validate path
+				if (!fs.existsSync(sourcePath)) {
+					deferred.reject(sourcePath + ' does not exist!');
 
-                // break loop
-                return false;
-            }
+					// break loop
+					return false;
+				}
 
-            // create PDF
-            phantom(sourcePath, outputBase + '.pdf', width +'px*' + height + 'px').then(function () {
-                exec(['pdftk', outputBase + '.pdf', 'cat', '1-1', 'output', outputBase + 'x.pdf'].join (' '), function (err) {
-                    // ignore errors for this one, pdftk will fail if there isn't 2 pages
-                    if (err) {
-                        resolve(outputBase + '.pdf');
-                    } else {
-                        resolve(outputBase + 'x.pdf');
-                        fs.unlinkSync(outputBase + '.pdf');
-                    }
-                });
-            });
-        } else {
-            // copy it to tmp directory
-            fs.createReadStream(__dirname + '/input/' + file)
-                .pipe(fs.createWriteStream(__dirname + '/tmp/' + file));
+				// create PDF
+				phantom(sourcePath, outputBase + '.pdf', width +'px*' + height + 'px').then(function () {
+					exec(['pdftk', outputBase + '.pdf', 'cat', '1-1', 'output', outputBase + 'x.pdf'].join (' '), function (err) {
+						// ignore errors for this one, pdftk will fail if there isn't 2 pages
+						if (err) {
+							resolve(outputBase + '.pdf');
+						} else {
+							resolve(outputBase + 'x.pdf');
+							fs.unlinkSync(outputBase + '.pdf');
+						}
+					});
+				});
+			});
 
-            resolve(__dirname + '/tmp/' + file);
-        }
+		} else {
+			// copy it to tmp directory
+			fs.createReadStream(__dirname + '/input/' + file)
+				.pipe(fs.createWriteStream(__dirname + '/tmp/' + file));
 
-        return deferred.promise;
-    }
+			resolve(__dirname + '/tmp/' + file);
+		}
+
+		return deferred.promise;
+	}
 
 
-    return (function (processes) {
-        return processes.reduce(Q.when, Q([]));
-    }(files.map(function (file) {
-        return function (list) {
-            var d = Q.defer();
+	return (function (processes) {
+		return processes.reduce(Q.when, Q([]));
+	}(files.map(function (file) {
+		return function (list) {
+			var d = Q.defer();
 
-            fileProcess(file).then(function (path) {
-                list.push(path);
+			if (!file) {
+				return;
+			}
 
-                d.resolve(list);
+			fileProcess(file).then(function (path) {
+				if (list) {
+					list.push(path);
+				}
 
-                console.log('processed file ' + path + ' on ', new Date);
-            }).catch(function () {
-                d.reject('file failed');
-            });
+				d.resolve(list);
 
-            return d.promise;
-        };
-    })));
+				console.log('processed file', new Date);
+			}).catch(function () {
+				d.reject('file failed');
+			});
+
+			return d.promise;
+		};
+	})));
 }
 
 /**
  * Merges PDFs into a single PDF from given list
- * @param  {Array} pdfList 
+ * @param  {Array} pdfList
  * @return {Object}  promise
  */
 function mergePdfs(pdfList) {
@@ -308,17 +326,15 @@ function mergePdfs(pdfList) {
 	// merge PDFs
 	exec(['pdftk', pdfList.join(' '), 'cat', 'output', outputFile].join(' '), function (err) {
 		if (err) {
-			console.log('');
-			console.log(err);
 			deferred.reject(err);
 		} else {
 			// removes files in tmp
 			pdfList.forEach(function (file) {
-                try {
-				    fs.unlinkSync(file);
-                } catch (e) {
-                    console.log('could not unlink ' + file);
-                }
+				try {
+					fs.unlinkSync(file);
+				} catch (ex) {
+					console.log(ex);
+				}
 			});
 
 			console.log('...PDFs merged: ' + outputFile);
@@ -329,11 +345,4 @@ function mergePdfs(pdfList) {
 	});
 
 	return deferred.promise;
-}
-
-function guidGenerator() {
-    var S4 = function() {
-        return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
-    };
-    return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
 }
